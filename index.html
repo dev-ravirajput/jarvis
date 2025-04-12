@@ -4,15 +4,17 @@
   <meta charset="UTF-8">
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
   <title>Jarvis Assistant</title>
-  <link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Montserrat:wght@300;400;600&display=swap">
+  <link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Montserrat:wght@300;400;600&family=Orbitron:wght@500&display=swap">
   <script src="https://unpkg.com/@barba/core"></script>
+  <script src="https://cdnjs.cloudflare.com/ajax/libs/gsap/3.11.4/gsap.min.js"></script>
   <style>
     :root {
       --primary: #6c5ce7;
       --secondary: #a29bfe;
       --accent: #fd79a8;
-      --dark: #2d3436;
+      --dark: #0f0f1a;
       --light: #f5f6fa;
+      --neon: #00f2ff;
     }
     
     * {
@@ -42,11 +44,13 @@
     h1 {
       font-size: 3rem;
       margin-bottom: 1.5rem;
-      background: linear-gradient(45deg, var(--primary), var(--accent));
+      background: linear-gradient(45deg, var(--primary), var(--neon));
       -webkit-background-clip: text;
       background-clip: text;
       color: transparent;
       font-weight: 600;
+      text-shadow: 0 0 10px rgba(0, 242, 255, 0.3);
+      font-family: 'Orbitron', sans-serif;
     }
     
     p {
@@ -56,7 +60,7 @@
     }
     
     strong {
-      color: var(--accent);
+      color: var(--neon);
       font-weight: 600;
     }
     
@@ -69,45 +73,52 @@
       border-radius: 50px;
       cursor: none;
       transition: all 0.3s ease;
-      box-shadow: 0 10px 20px rgba(0, 0, 0, 0.2);
+      box-shadow: 0 10px 20px rgba(0, 0, 0, 0.2), 0 0 15px var(--neon);
       margin-bottom: 2rem;
       position: relative;
       overflow: hidden;
+      z-index: 10;
     }
     
     #activateBtn:hover {
       transform: translateY(-3px);
-      box-shadow: 0 15px 30px rgba(0, 0, 0, 0.3);
-    }
-    
-    #activateBtn:active {
-      transform: translateY(1px);
-    }
-    
-    #activateBtn::after {
-      content: '';
-      position: absolute;
-      top: 0;
-      left: 0;
-      width: 100%;
-      height: 100%;
-      background: linear-gradient(45deg, var(--accent), var(--primary));
-      z-index: -1;
-      transition: opacity 0.3s ease;
-      opacity: 0;
-    }
-    
-    #activateBtn:hover::after {
-      opacity: 1;
+      box-shadow: 0 15px 30px rgba(0, 0, 0, 0.3), 0 0 25px var(--neon);
     }
     
     #status {
       font-size: 1.1rem;
       padding: 1rem;
       border-radius: 10px;
-      background-color: rgba(255, 255, 255, 0.1);
+      background-color: rgba(255, 255, 255, 0.05);
       display: inline-block;
       transition: all 0.3s ease;
+      border: 1px solid rgba(0, 242, 255, 0.2);
+      box-shadow: inset 0 0 10px rgba(0, 242, 255, 0.1);
+    }
+    
+    /* Dynamic DOM elements */
+    .dom-structure {
+      position: absolute;
+      border: 1px solid rgba(0, 242, 255, 0.3);
+      pointer-events: none;
+      z-index: 5;
+      transition: all 0.5s ease;
+    }
+    
+    .dom-node {
+      position: absolute;
+      width: 8px;
+      height: 8px;
+      background-color: var(--neon);
+      border-radius: 50%;
+      box-shadow: 0 0 10px var(--neon);
+    }
+    
+    .dom-connection {
+      position: absolute;
+      height: 1px;
+      background: linear-gradient(90deg, var(--neon), transparent);
+      transform-origin: left center;
     }
     
     /* Cursor styles */
@@ -116,12 +127,13 @@
       width: 20px;
       height: 20px;
       border-radius: 50%;
-      background-color: var(--accent);
+      background-color: var(--neon);
       pointer-events: none;
-      mix-blend-mode: difference;
+      mix-blend-mode: screen;
       z-index: 9999;
       transform: translate(-50%, -50%);
       transition: transform 0.1s ease;
+      box-shadow: 0 0 15px var(--neon);
     }
     
     .cursor-follower {
@@ -129,72 +141,83 @@
       width: 40px;
       height: 40px;
       border-radius: 50%;
-      background-color: rgba(253, 121, 168, 0.3);
+      background-color: rgba(0, 242, 255, 0.3);
       pointer-events: none;
       z-index: 9998;
       transform: translate(-50%, -50%);
       transition: transform 0.4s ease, width 0.3s ease, height 0.3s ease;
+      box-shadow: 0 0 20px var(--neon);
+      border: 1px solid rgba(0, 242, 255, 0.5);
     }
     
-    .cursor-follower.active {
-      width: 60px;
-      height: 60px;
-      background-color: rgba(253, 121, 168, 0.5);
-    }
-    
-    /* Animated background */
-    .bg-particles {
+    /* HUD elements */
+    .hud-element {
       position: fixed;
+      border: 1px solid rgba(0, 242, 255, 0.3);
+      background-color: rgba(0, 0, 0, 0.2);
+      z-index: 2;
+    }
+    
+    .hud-corner {
+      position: absolute;
+      width: 20px;
+      height: 20px;
+      border-color: var(--neon);
+      border-style: solid;
+      border-width: 0;
+    }
+    
+    .hud-corner-tl {
       top: 0;
       left: 0;
-      width: 100%;
-      height: 100%;
-      z-index: 1;
-      overflow: hidden;
+      border-top-width: 2px;
+      border-left-width: 2px;
     }
     
-    .particle {
-      position: absolute;
-      width: 2px;
-      height: 2px;
-      background-color: rgba(255, 255, 255, 0.5);
-      border-radius: 50%;
-      animation: float 15s infinite linear;
+    .hud-corner-tr {
+      top: 0;
+      right: 0;
+      border-top-width: 2px;
+      border-right-width: 2px;
+    }
+    
+    .hud-corner-bl {
+      bottom: 0;
+      left: 0;
+      border-bottom-width: 2px;
+      border-left-width: 2px;
+    }
+    
+    .hud-corner-br {
+      bottom: 0;
+      right: 0;
+      border-bottom-width: 2px;
+      border-right-width: 2px;
+    }
+    
+    /* Animations */
+    @keyframes pulse {
+      0% { opacity: 0.3; }
+      50% { opacity: 1; }
+      100% { opacity: 0.3; }
     }
     
     @keyframes float {
-      0% {
-        transform: translateY(0) translateX(0);
-        opacity: 0;
-      }
-      10% {
-        opacity: 1;
-      }
-      90% {
-        opacity: 1;
-      }
-      100% {
-        transform: translateY(-100vh) translateX(100px);
-        opacity: 0;
-      }
+      0% { transform: translateY(0) translateX(0); opacity: 0; }
+      10% { opacity: 1; }
+      90% { opacity: 1; }
+      100% { transform: translateY(-100vh) translateX(100px); opacity: 0; }
     }
     
-    /* Page transitions */
-    .transition-overlay {
-      position: fixed;
-      top: 0;
-      left: 0;
-      width: 100%;
-      height: 100%;
-      background: linear-gradient(45deg, var(--primary), var(--dark));
-      z-index: 100;
-      transform: scaleY(0);
-      transform-origin: bottom;
-    }
-    
-    .transition-overlay.active {
-      transform: scaleY(1);
-      transform-origin: top;
+    /* Responsive adjustments */
+    @media (max-width: 768px) {
+      h1 {
+        font-size: 2rem;
+      }
+      
+      .dom-structure {
+        display: none;
+      }
     }
   </style>
 </head>
@@ -203,18 +226,38 @@
   <div class="cursor"></div>
   <div class="cursor-follower"></div>
   
-  <!-- Background particles -->
-  <div class="bg-particles" id="particles"></div>
+  <!-- Dynamic DOM structure elements -->
+  <div id="dom-structures"></div>
   
-  <!-- Page transition overlay -->
-  <div class="transition-overlay"></div>
+  <!-- HUD elements -->
+  <div class="hud-element" style="top: 20px; left: 20px; width: 150px; height: 80px;">
+    <div class="hud-corner hud-corner-tl"></div>
+    <div class="hud-corner hud-corner-tr"></div>
+    <div class="hud-corner hud-corner-bl"></div>
+    <div class="hud-corner hud-corner-br"></div>
+    <div style="padding: 10px; font-family: 'Orbitron'; font-size: 0.8rem; color: var(--neon);">
+      SYSTEM STATUS<br>
+      <span style="animation: pulse 2s infinite;">ONLINE</span>
+    </div>
+  </div>
+  
+  <div class="hud-element" style="bottom: 20px; right: 20px; width: 200px; height: 60px;">
+    <div class="hud-corner hud-corner-tl"></div>
+    <div class="hud-corner hud-corner-tr"></div>
+    <div class="hud-corner hud-corner-bl"></div>
+    <div class="hud-corner hud-corner-br"></div>
+    <div style="padding: 10px; font-family: 'Orbitron'; font-size: 0.8rem; color: var(--neon);">
+      JARVIS v3.1.4<br>
+      <span style="font-size: 0.7rem; opacity: 0.7;">READY FOR INPUT</span>
+    </div>
+  </div>
   
   <div data-barba="container" data-barba-namespace="home" class="container">
-    <h1>👋 Welcome to Jarvis</h1>
+    <h1>👋 WELCOME TO JARVIS</h1>
     <p>Say "<strong>Hello Jarvis</strong>" or press the button to activate</p>
 
-    <button id="activateBtn">🎤 Activate Jarvis</button>
-    <div id="status">Jarvis is sleeping...</div>
+    <button id="activateBtn">🎤 ACTIVATE JARVIS</button>
+    <div id="status">SYSTEM STANDBY</div>
   </div>
   <script src="jarvis.js"></script>
   <script>
@@ -254,38 +297,109 @@
     // Cursor effects on hover
     document.querySelectorAll('button, a').forEach(el => {
       el.addEventListener('mouseenter', () => {
-        cursorFollower.classList.add('active');
+        cursorFollower.style.width = '60px';
+        cursorFollower.style.height = '60px';
+        cursorFollower.style.backgroundColor = 'rgba(0, 242, 255, 0.5)';
       });
       
       el.addEventListener('mouseleave', () => {
-        cursorFollower.classList.remove('active');
+        cursorFollower.style.width = '40px';
+        cursorFollower.style.height = '40px';
+        cursorFollower.style.backgroundColor = 'rgba(0, 242, 255, 0.3)';
       });
     });
     
-    // Create background particles
-    const particlesContainer = document.getElementById('particles');
-    const particleCount = 50;
+    // Create dynamic DOM structure visualization
+    const domStructures = document.getElementById('dom-structures');
+    const structureCount = 8;
     
-    for (let i = 0; i < particleCount; i++) {
-      const particle = document.createElement('div');
-      particle.classList.add('particle');
+    function createDOMStructure() {
+      const structure = document.createElement('div');
+      structure.className = 'dom-structure';
       
-      // Random position
-      particle.style.left = Math.random() * 100 + 'vw';
-      particle.style.top = Math.random() * 100 + 'vh';
+      // Random position and size
+      const size = Math.random() * 200 + 100;
+      const left = Math.random() * (window.innerWidth - size);
+      const top = Math.random() * (window.innerHeight - size);
       
-      // Random size
-      const size = Math.random() * 3 + 1;
-      particle.style.width = size + 'px';
-      particle.style.height = size + 'px';
+      structure.style.width = `${size}px`;
+      structure.style.height = `${size}px`;
+      structure.style.left = `${left}px`;
+      structure.style.top = `${top}px`;
       
-      // Random animation duration and delay
-      const duration = Math.random() * 10 + 10;
-      const delay = Math.random() * 5;
-      particle.style.animationDuration = duration + 's';
-      particle.style.animationDelay = delay + 's';
+      // Create nodes and connections
+      const nodeCount = Math.floor(Math.random() * 4) + 3;
+      const nodes = [];
       
-      particlesContainer.appendChild(particle);
+      for (let i = 0; i < nodeCount; i++) {
+        const node = document.createElement('div');
+        node.className = 'dom-node';
+        
+        // Position node randomly within structure
+        const nodeLeft = Math.random() * size;
+        const nodeTop = Math.random() * size;
+        
+        node.style.left = `${nodeLeft}px`;
+        node.style.top = `${nodeTop}px`;
+        node.style.opacity = Math.random() * 0.5 + 0.5;
+        
+        structure.appendChild(node);
+        nodes.push({el: node, x: nodeLeft, y: nodeTop});
+      }
+      
+      // Create connections between nodes
+      for (let i = 0; i < nodes.length - 1; i++) {
+        const connection = document.createElement('div');
+        connection.className = 'dom-connection';
+        
+        const startNode = nodes[i];
+        const endNode = nodes[i+1];
+        
+        const dx = endNode.x - startNode.x;
+        const dy = endNode.y - startNode.y;
+        const distance = Math.sqrt(dx * dx + dy * dy);
+        const angle = Math.atan2(dy, dx) * 180 / Math.PI;
+        
+        connection.style.width = `${distance}px`;
+        connection.style.left = `${startNode.x}px`;
+        connection.style.top = `${startNode.y}px`;
+        connection.style.transform = `rotate(${angle}deg)`;
+        connection.style.opacity = Math.random() * 0.3 + 0.2;
+        
+        structure.appendChild(connection);
+      }
+      
+      domStructures.appendChild(structure);
+      
+      // Animate the structure
+      const duration = Math.random() * 20 + 20;
+      const xMovement = (Math.random() - 0.5) * 200;
+      const yMovement = (Math.random() - 0.5) * 200;
+      
+      gsap.to(structure, {
+        x: xMovement,
+        y: yMovement,
+        duration: duration,
+        yoyo: true,
+        repeat: -1,
+        ease: "sine.inOut"
+      });
+      
+      // Animate opacity of nodes
+      nodes.forEach(node => {
+        gsap.to(node.el, {
+          opacity: Math.random() * 0.5 + 0.1,
+          duration: Math.random() * 3 + 2,
+          yoyo: true,
+          repeat: -1,
+          ease: "sine.inOut"
+        });
+      });
+    }
+    
+    // Create multiple structures
+    for (let i = 0; i < structureCount; i++) {
+      createDOMStructure();
     }
     
     // Button interaction
@@ -293,13 +407,34 @@
     const status = document.getElementById('status');
     
     activateBtn.addEventListener('click', () => {
-      status.textContent = "Jarvis is listening...";
-      status.style.backgroundColor = "rgba(108, 92, 231, 0.3)"; 
+      status.textContent = "LISTENING...";
+      status.style.textShadow = "0 0 10px var(--neon)";
+      status.style.borderColor = "var(--neon)";
+      
+      // Create a ripple effect
+      const ripple = document.createElement('div');
+      ripple.style.position = 'absolute';
+      ripple.style.width = '10px';
+      ripple.style.height = '10px';
+      ripple.style.backgroundColor = 'transparent';
+      ripple.style.border = '1px solid var(--neon)';
+      ripple.style.borderRadius = '50%';
+      ripple.style.pointerEvents = 'none';
+      ripple.style.left = `${activateBtn.offsetLeft + activateBtn.offsetWidth/2 - 5}px`;
+      ripple.style.top = `${activateBtn.offsetTop + activateBtn.offsetHeight/2 - 5}px`;
+      document.body.appendChild(ripple);
+      
+      gsap.to(ripple, {
+        width: 500,
+        height: 500,
+        opacity: 0,
+        duration: 1.5,
+        onComplete: () => ripple.remove()
+      });
       
       // Simulate voice recognition
       setTimeout(() => {
-        status.textContent = "How can I help you today?";
-        status.style.backgroundColor = "rgba(253, 121, 168, 0.3)";
+        status.textContent = "READY FOR COMMANDS";
       }, 1500);
     });
     
@@ -334,6 +469,15 @@
         duration: 0.8,
         delay: 0.6,
         ease: "power3.out"
+      });
+      
+      // Animate HUD elements
+      gsap.from('.hud-element', {
+        opacity: 0,
+        y: 20,
+        duration: 1,
+        delay: 0.8,
+        stagger: 0.2
       });
     });
   </script>
